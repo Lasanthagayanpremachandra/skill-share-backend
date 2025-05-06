@@ -1,7 +1,9 @@
 package com.skillshare.controller;
 
+import com.skillshare.dto.AuthResponse;
 import com.skillshare.dto.LoginRequest;
 import com.skillshare.dto.RegisterRequest;
+import com.skillshare.dto.UserDto;
 import com.skillshare.model.User;
 import com.skillshare.repository.UserRepository;
 import com.skillshare.security.JwtService;
@@ -13,8 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -33,7 +36,7 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setProvider("local");
         
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         String token = jwtService.generateToken(
             Map.of("id", user.getId()),
@@ -44,7 +47,14 @@ public class AuthController {
             )
         );
 
-        return ResponseEntity.ok(new AuthResponse(token));
+        return ResponseEntity.ok(AuthResponse.builder()
+            .token(token)
+            .user(UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .build())
+            .build());
     }
 
     @PostMapping("/login")
@@ -65,8 +75,13 @@ public class AuthController {
             )
         );
 
-        return ResponseEntity.ok(new AuthResponse(token));
+        return ResponseEntity.ok(AuthResponse.builder()
+            .token(token)
+            .user(UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .build())
+            .build());
     }
-}
-
-record AuthResponse(String token) {} 
+} 
