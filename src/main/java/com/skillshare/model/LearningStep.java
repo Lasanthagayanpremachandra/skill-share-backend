@@ -1,5 +1,7 @@
 package com.skillshare.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -41,6 +43,7 @@ public class LearningStep {
     @Enumerated(EnumType.STRING)
     private StepStatus status = StepStatus.NOT_STARTED;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "learning_plan_id", nullable = false)
     private LearningPlan learningPlan;

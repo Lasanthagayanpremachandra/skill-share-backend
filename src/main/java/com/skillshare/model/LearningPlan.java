@@ -1,5 +1,8 @@
 package com.skillshare.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -38,10 +41,12 @@ public class LearningPlan {
     @Enumerated(EnumType.STRING)
     private PlanStatus status = PlanStatus.NOT_STARTED;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "learningPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LearningStep> steps = new ArrayList<>();
 

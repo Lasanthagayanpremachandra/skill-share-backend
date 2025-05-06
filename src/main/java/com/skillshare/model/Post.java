@@ -1,5 +1,8 @@
 package com.skillshare.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,10 +38,12 @@ public class Post {
     @Enumerated(EnumType.STRING)
     private PostType type;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @JsonBackReference
     @ManyToMany
     @JoinTable(
         name = "post_likes",
@@ -47,6 +52,7 @@ public class Post {
     )
     private List<User> likes = new ArrayList<>();
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 

@@ -1,5 +1,8 @@
 package com.skillshare.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -48,12 +51,15 @@ public class User implements UserDetails {
 
     private String profilePicture;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<LearningPlan> learningPlans = new ArrayList<>();
 
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
         name = "user_followers",
@@ -62,6 +68,7 @@ public class User implements UserDetails {
     )
     private List<User> followers = new ArrayList<>();
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "followers")
     private List<User> following = new ArrayList<>();
 
