@@ -1,8 +1,10 @@
 package com.skillshare.controller;
 
+import com.skillshare.model.MediaFile;
 import com.skillshare.model.Post;
 import com.skillshare.model.PostType;
 import com.skillshare.model.User;
+import com.skillshare.repository.MediaFileRepository;
 import com.skillshare.repository.PostRepository;
 import com.skillshare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +16,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/posts")
@@ -23,6 +32,7 @@ public class PostController {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final MediaFileRepository mediaFileRepository;
 
     @GetMapping
     public ResponseEntity<Page<Post>> getPosts(Pageable pageable) {
@@ -40,24 +50,83 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<Post> createPost(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("content") String content,
-            @RequestParam("type") String type,
-            @RequestParam(value = "media", required = false) List<MultipartFile> media
-    ) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+public ResponseEntity<Post> createPost(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestParam("content") String content,
+        @RequestParam("type") String type,
+        @RequestParam(value = "media", required = false) List<MultipartFile> media
+) {
+    User user = userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Post post = new Post();
-        post.setContent(content);
-        post.setUser(user);
-        post.setType(PostType.valueOf(type));
-
-        // TODO: Handle media file upload and storage
+    Post post = new Post();
+    post.setContent(content);
+    post.setUser(user);
+    post.setType(PostType.valueOf(type));
+    
+    // Save the post first to get its ID
+    Post savedPost = postRepository.save(post);
+    
+    // Handle media file upload and storage
+    if (media != null && !media.isEmpty()) {
+        List<MediaFile> mediaFiles = new ArrayList<>();
         
-        return ResponseEntity.ok(postRepository.save(post));
+        for (MultipartFile file : media) {
+            if (!file.isEmpty()) {
+                try {
+                    // Create a unique filename
+                    String originalFilename = file.getOriginalFilename();
+                    String fileExtension = getFileExtension(originalFilename);
+                    String uniqueFilename = UUID.randomUUID().toString() + "." + fileExtension;
+                    
+                    // Define the file path where media will be stored
+                    String uploadDir = "uploads/" + savedPost.getId();
+                    Path uploadPath = Paths.get(uploadDir);
+                    
+                    // Create directories if they don't exist
+                    if (!Files.exists(uploadPath)) {
+                        Files.createDirectories(uploadPath);
+                    }
+                    
+                    // Save the file
+                    Path filePath = uploadPath.resolve(uniqueFilename);
+                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Create and save MediaFile entity
+                    MediaFile mediaFile = new MediaFile();
+                    mediaFile.setFilename(uniqueFilename);
+                    mediaFile.setOriginalFilename(originalFilename);
+                    mediaFile.setContentType(file.getContentType());
+                    mediaFile.setSize(file.getSize());
+                    mediaFile.setFilePath(uploadDir + "/" + uniqueFilename);
+                    mediaFile.setPost(savedPost);
+                    
+                    mediaFiles.add(mediaFileRepository.save(mediaFile));
+                    
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to store media file", e);
+                }
+            }
+        }
+        
+        // Update post with media files
+        savedPost.setMediaFiles(mediaFiles);
+        savedPost = postRepository.save(savedPost);
     }
+    
+    return ResponseEntity.ok(savedPost);
+}
+
+/**
+ * Extract file extension from filename
+ */
+private String getFileExtension(String filename) {
+    if (filename == null) {
+        return "";
+    }
+    int dotIndex = filename.lastIndexOf('.');
+    return (dotIndex == -1) ? "" : filename.substring(dotIndex + 1);
+}
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updatePost(

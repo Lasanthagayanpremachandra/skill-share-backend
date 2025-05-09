@@ -61,4 +61,7 @@ public class Post {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+private List<MediaFile> mediaFiles = new ArrayList<>();
 } 
