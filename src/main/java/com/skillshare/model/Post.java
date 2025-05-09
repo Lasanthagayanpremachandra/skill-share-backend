@@ -38,13 +38,13 @@ public class Post {
     @Enumerated(EnumType.STRING)
     private PostType type;
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonManagedReference
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @JsonBackReference
-    @ManyToMany
+    @JsonManagedReference
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "post_likes",
         joinColumns = @JoinColumn(name = "post_id"),
